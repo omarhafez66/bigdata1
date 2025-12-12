@@ -254,7 +254,7 @@ tab1, tab2, tab3 = st.tabs(["Overview", "Detailed", "Data & Export"])
 with tab1:
     st.subheader("Overview — quick glance")
 
-    # --- TOP ROW: Scatter (left wide) + Road Condition Pie (right narrow) ---
+    # --- TOP ROW: Scatter (left wide) + Pies (right narrow stacked) ---
     sc_col, pie_col = st.columns([2, 1])
 
     # Scatter in left wide column
@@ -281,7 +281,7 @@ with tab1:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # Road Condition Pie in right column (next to scatter)
+    # Two pies stacked in right column (road condition then weather)
     with pie_col:
         st.subheader("Road Condition Distribution")
         if "road_condition" in df_f.columns:
@@ -303,21 +303,33 @@ with tab1:
                     "Damaged": "#EF4444"
                 }
             )
-            fig_rc.update_layout(template=theme_choice, margin=dict(t=40, b=10, l=10, r=10))
+            fig_rc.update_layout(template=theme_choice, margin=dict(t=20, b=10, l=10, r=10), height=300)
             st.plotly_chart(fig_rc, use_container_width=True)
             st.markdown("<div class='small-note'>Distribution of road surface conditions affecting traffic and safety.</div>", unsafe_allow_html=True)
         else:
             st.info("Column `road_condition` is missing.")
 
+        st.markdown("---")
+
+        st.subheader("Weather Conditions")
+        if "weather_condition" in df_f.columns:
+            cond = df_f["weather_condition"].value_counts().reset_index()
+            cond.columns = ["condition", "count"]
+            fig2 = px.pie(cond, values="count", names="condition", hole=0.55, title="Weather distribution")
+            fig2.update_layout(template=theme_choice, margin=dict(t=20, b=10, l=10, r=10), height=300)
+            st.plotly_chart(fig2, use_container_width=True)
+            st.markdown("<div class='small-note'>Click a slice to inspect details in hover.</div>", unsafe_allow_html=True)
+        else:
+            st.info("No `weather_condition` column available to show distribution.")
+
     # --- BELOW: Road Conditions & Speed Analysis heading ---
     st.markdown("## Road Conditions & Speed Analysis")
 
-    # Now create a two-column layout where left is wide (same as scatter) and right is narrow.
-    # We'll render the Box Plot and the Accident line chart in the left wide column so they keep the large width.
+    # Create wide-left column for boxplot and accident line charts
     left_wide, right_narrow = st.columns([2, 1])
 
-    # Box Plot in the left wide column (same width as scatter)
     with left_wide:
+        # Box Plot full width (under the scatter)
         st.markdown("### Avg Speed vs Congestion Level")
         if "avg_speed_kmh" in df_f.columns and "congestion_level" in df_f.columns:
             try:
@@ -379,9 +391,8 @@ with tab1:
         else:
             st.info("Accident line chart needs columns: `accident_count`, `date_time`, and `weather_condition`.")
 
-    # Keep right narrow column for notes / quick stats if needed (now uses the same pie area for balance)
     with right_narrow:
-        st.markdown("")  # keep it aligned; nothing required here
+        st.markdown("")  # space holder, right column intentionally empty for balance
 
 with tab2:
     st.subheader("Detailed analysis")
