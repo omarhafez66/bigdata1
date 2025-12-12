@@ -539,8 +539,7 @@ with tab4:
 
     except FileNotFoundError:
         st.warning("Monte Carlo results CSV not found in the assets folder.")
-    st.markdown("**Quick summary:**")
-    st.write(mc_df.describe())
+
 
 # -------------------------
 # Footer tips + accessibility
@@ -552,6 +551,7 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
+
 
 
 
