@@ -519,7 +519,23 @@ with tab4:
     )
     st.divider()
   
-    st.title("Simulation Results")
+    try:
+        mc_df = pd.read_csv("assets/simulation_results.csv")
+
+        st.markdown("### Simulation Results (CSV)")
+        st.dataframe(mc_df, use_container_width=True)
+
+        # Download button
+        csv_bytes = mc_df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="Download Monte Carlo Results (CSV)",
+            data=csv_bytes,
+            file_name="monte_carlo_results.csv",
+            mime="text/csv"
+        )
+
+    except FileNotFoundError:
+        st.warning("Monte Carlo results CSV not found in the assets folder.")
     
 # -------------------------
 # Footer tips + accessibility
@@ -531,6 +547,7 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
+
 
 
 
