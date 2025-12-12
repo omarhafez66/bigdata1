@@ -510,7 +510,6 @@ with tab4:
         "assets/congestion_probability_distribution_1-converted.webp",  
         use_container_width=True
     )
-    st.divider()
     # Description text
     st.markdown(
         """
@@ -533,6 +532,7 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
+
 
 
 
