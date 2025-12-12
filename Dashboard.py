@@ -463,6 +463,7 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("**Tips & Accessibility**")
 st.sidebar.markdown("- Use the area dropdown to focus on a specific neighborhood quickly.")
 st.sidebar.markdown("- Toggle aggregation frequency to change accident chart granularity.")
-st.sidebar.markdown("- Ensure colors are visible in dark mode if your users switch themes.")
+
 
 # End of dashboard
+
