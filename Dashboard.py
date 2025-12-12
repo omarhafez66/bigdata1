@@ -101,7 +101,7 @@ total_vehicles = int(df["vehicle_count"].sum())
 total_accidents = int(df["accident_count"].sum())
 
 # -------
-# KPI Row 
+# KPI Row
 # -------
 k1, k2, k3, k4 = st.columns([1.3,1.3,1.3,1.3])
 
@@ -148,13 +148,29 @@ st.write("\n")
 # Sidebar — Controls & Filters
 # ----------------------------
 st.sidebar.title("Filters")
-season = st.sidebar.multiselect("Season", options=df["season"].dropna().unique(), default=df["season"].dropna().unique())
 
-# Area search + Top-N selector
-st.sidebar.markdown("### Area filter")
-area_search = st.sidebar.text_input("Search area (type to filter)")
-top_n = st.sidebar.slider("Show Top N areas by vehicle count (0 = all)", 0, 50, 0)
+# --- 1. SEASONS AS CHECKBOXES ---
+st.sidebar.markdown("### Seasons")
+unique_seasons = df["season"].dropna().unique()
+selected_seasons = []
 
+# Loop through available seasons and create a checkbox for each
+for s in unique_seasons:
+    # Default to True (checked)
+    if st.sidebar.checkbox(s, value=True):
+        selected_seasons.append(s)
+
+# --- 2. AREA AS DROPDOWN ---
+st.sidebar.markdown("### Area Selection")
+# Defined list from user requirements
+specific_areas = ["Westminster", "Kensington", "Islington", "Camden", "Greenwich", "Chelsea", "Southwark"]
+# Add 'All' option to the beginning
+area_options = ["All"] + specific_areas
+
+selected_area = st.sidebar.selectbox("Choose Area", area_options)
+
+# --- 3. OTHER FILTERS ---
+st.sidebar.markdown("---")
 # Date range & aggregation
 min_dt, max_dt = df["date_time"].min(), df["date_time"].max()
 dt_range = st.sidebar.date_input("Date range", value=[min_dt.date(), max_dt.date()])
@@ -172,22 +188,23 @@ with st.sidebar.expander("Advanced"):
 # Apply filters
 # -------------------------
 df_f = df.copy()
-if season:
-    df_f = df_f[df_f["season"].isin(season)]
 
-# area search
-if area_search:
-    df_f = df_f[df_f["area"].str.contains(area_search, case=False, na=False)]
+# 1. Filter by Seasons (Checkboxes)
+if selected_seasons:
+    df_f = df_f[df_f["season"].isin(selected_seasons)]
+else:
+    st.warning("Please select at least one season from the sidebar.")
+    st.stop()
 
-# top-N
-if top_n > 0:
-    top_areas = df_f.groupby("area")["vehicle_count"].sum().nlargest(top_n).index
-    df_f = df_f[df_f["area"].isin(top_areas)]
+# 2. Filter by Area (Dropdown)
+if selected_area != "All":
+    # This filters the dataframe to only the chosen area
+    df_f = df_f[df_f["area"] == selected_area]
 
-# advanced filters
+# 3. Advanced filters
 df_f = df_f[df_f["accident_count"] >= acc_threshold]
 
-# date range
+# 4. Date range
 start = pd.to_datetime(dt_range[0])
 end = pd.to_datetime(dt_range[1]) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
 df_f = df_f[(df_f["date_time"] >= start) & (df_f["date_time"] <= end)]
@@ -196,7 +213,6 @@ df_f = df_f[(df_f["date_time"] >= start) & (df_f["date_time"] <= end)]
 if df_f.empty:
     st.warning("No records match the filters — try widening the date range or removing filters.")
     st.stop()
-
 
 
 # -------------------------
@@ -237,7 +253,7 @@ with tab1:
 
     # Scatter with min/max size and better legend placement
     with c1:
-        st.markdown("**Temperature × Avg Speed × Vehicle Count**  \n*Bubble size represents vehicle density*")
+        st.markdown("**Temperature × Avg Speed × Vehicle Count** \n*Bubble size represents vehicle density*")
         size_ref = max(df_f["vehicle_count"].max(), 1)
         fig = px.scatter(df_f, x="temperature_c", y="avg_speed_kmh",
                          size="vehicle_count", size_max=50,
@@ -340,8 +356,6 @@ with tab3:
 # -------------------------
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Tips & Accessibility**")
-st.sidebar.markdown("- Use the search box to filter areas quickly.")
+st.sidebar.markdown("- Select specific seasons to compare performance.")
+st.sidebar.markdown("- Use the dropdown to isolate specific London areas.")
 st.sidebar.markdown("- Ensure colors are visible in dark mode if your users switch themes.")
-st.sidebar.markdown("- Use Top-N to focus on the most important areas.")
-
-# End of dashboard
