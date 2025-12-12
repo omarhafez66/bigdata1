@@ -253,11 +253,12 @@ tab1, tab2, tab3 = st.tabs(["Overview", "Detailed", "Data & Export"])
 
 with tab1:
     st.subheader("Overview — quick glance")
-    # layout: left column for main scatter + extra charts stacked; right column for weather pie etc.
-    left, right = st.columns([2, 1])
 
-    # Scatter with min/max size and better legend placement
-    with left:
+    # --- TOP ROW: Scatter (left wide) + Road Condition Pie (right narrow) ---
+    sc_col, pie_col = st.columns([2, 1])
+
+    # Scatter in left wide column
+    with sc_col:
         st.markdown("**Temperature × Avg Speed × Vehicle Count**  \n*Bubble size represents vehicle density*")
         size_ref = max(df_f["vehicle_count"].max() if "vehicle_count" in df_f.columns else 1, 1)
         fig = px.scatter(
@@ -280,61 +281,64 @@ with tab1:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- Box Plot + Road Condition Pie Side by Side ---
-        st.markdown("### Road Conditions & Speed Analysis")
-        col_bp, col_pie = st.columns([1, 1])
+    # Road Condition Pie in right column (next to scatter)
+    with pie_col:
+        st.subheader("Road Condition Distribution")
+        if "road_condition" in df_f.columns:
+            df_rc = df_f[df_f["road_condition"].isin(["Snowy", "Dry", "Wet", "Damaged"])]
+            rc = df_rc["road_condition"].value_counts().reset_index()
+            rc.columns = ["road_condition", "count"]
 
-        # Box Plot
-        with col_bp:
-            st.markdown("**Avg Speed vs Congestion Level**")
-            if "avg_speed_kmh" in df_f.columns and "congestion_level" in df_f.columns:
-                try:
-                    fig_box = px.box(
-                        df_f,
-                        x="congestion_level",
-                        y="avg_speed_kmh",
-                        points="outliers" if show_outliers else False,
-                        category_orders={"congestion_level": ["Low", "Medium", "High"]},
-                        title="Speed Distribution",
-                        labels={"avg_speed_kmh": "Avg Speed (km/h)", "congestion_level": "Congestion"},
-                    )
-                    fig_box.update_layout(template=theme_choice, margin=dict(t=40, b=10, l=10, r=10))
-                    st.plotly_chart(fig_box, use_container_width=True)
-                    st.markdown("<div class='small-note'>Box plot helps compare speed variability across congestion levels.</div>", unsafe_allow_html=True)
-                except Exception as e:
-                    st.error(f"Couldn't build box plot: {e}")
-            else:
-                st.info("Box plot needs columns: `avg_speed_kmh` and `congestion_level`.")
+            fig_rc = px.pie(
+                rc,
+                values="count",
+                names="road_condition",
+                hole=0.5,
+                title="Road Condition Share",
+                color="road_condition",
+                color_discrete_map={
+                    "Dry": "#10B981",
+                    "Wet": "#3B82F6",
+                    "Snowy": "#60A5FA",
+                    "Damaged": "#EF4444"
+                }
+            )
+            fig_rc.update_layout(template=theme_choice, margin=dict(t=40, b=10, l=10, r=10))
+            st.plotly_chart(fig_rc, use_container_width=True)
+            st.markdown("<div class='small-note'>Distribution of road surface conditions affecting traffic and safety.</div>", unsafe_allow_html=True)
+        else:
+            st.info("Column `road_condition` is missing.")
 
-        # Pie Chart
-        with col_pie:
-            st.markdown("**Road Condition Distribution**")
-            if "road_condition" in df_f.columns:
-                df_rc = df_f[df_f["road_condition"].isin(["Snowy", "Dry", "Wet", "Damaged"])]
-                rc = df_rc["road_condition"].value_counts().reset_index()
-                rc.columns = ["road_condition", "count"]
+    # --- BELOW: Road Conditions & Speed Analysis heading ---
+    st.markdown("## Road Conditions & Speed Analysis")
 
-                fig_rc = px.pie(
-                    rc,
-                    values="count",
-                    names="road_condition",
-                    hole=0.5,
-                    title="Road Conditions",
-                    color="road_condition",
-                    color_discrete_map={
-                        "Dry": "#10B981",
-                        "Wet": "#3B82F6",
-                        "Snowy": "#60A5FA",
-                        "Damaged": "#EF4444"
-                    }
+    # Now create a two-column layout where left is wide (same as scatter) and right is narrow.
+    # We'll render the Box Plot and the Accident line chart in the left wide column so they keep the large width.
+    left_wide, right_narrow = st.columns([2, 1])
+
+    # Box Plot in the left wide column (same width as scatter)
+    with left_wide:
+        st.markdown("### Avg Speed vs Congestion Level")
+        if "avg_speed_kmh" in df_f.columns and "congestion_level" in df_f.columns:
+            try:
+                fig_box = px.box(
+                    df_f,
+                    x="congestion_level",
+                    y="avg_speed_kmh",
+                    points="outliers" if show_outliers else False,
+                    category_orders={"congestion_level": ["Low", "Medium", "High"]},
+                    title="Speed Distribution by Congestion Level",
+                    labels={"avg_speed_kmh": "Avg Speed (km/h)", "congestion_level": "Congestion Level"},
                 )
-                fig_rc.update_layout(template=theme_choice, margin=dict(t=40, b=10, l=10, r=10))
-                st.plotly_chart(fig_rc, use_container_width=True)
-                st.markdown("<div class='small-note'>Distribution of road surface conditions affecting traffic and safety.</div>", unsafe_allow_html=True)
-            else:
-                st.info("Column `road_condition` is missing.")
+                fig_box.update_layout(template=theme_choice, margin=dict(t=40, b=10, l=10, r=10))
+                st.plotly_chart(fig_box, use_container_width=True)
+                st.markdown("<div class='small-note'>Box plot helps compare speed variability across congestion levels.</div>", unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Couldn't build box plot: {e}")
+        else:
+            st.info("Box plot needs columns: `avg_speed_kmh` and `congestion_level`.")
 
-        # --- Line Chart — Accident Count vs Time (Always On) ---
+        # Line Chart under the boxplot (also in wide column)
         st.markdown("### Line Chart — Accident Count vs Time (by Weather Condition)")
         freq_map = {"Daily": "D", "Weekly": "W", "Monthly": "M"}
         freq = freq_map.get(acc_line_freq, "D")
@@ -375,17 +379,9 @@ with tab1:
         else:
             st.info("Accident line chart needs columns: `accident_count`, `date_time`, and `weather_condition`.")
 
-    with right:
-        st.subheader("Weather Conditions")
-        if "weather_condition" in df_f.columns:
-            cond = df_f["weather_condition"].value_counts().reset_index()
-            cond.columns = ["condition", "count"]
-            fig2 = px.pie(cond, values="count", names="condition", hole=0.55, title="Weather distribution")
-            fig2.update_layout(template=theme_choice, margin=dict(t=40, b=10, l=10, r=10))
-            st.plotly_chart(fig2, use_container_width=True)
-            st.markdown("<div class='small-note'>Click a slice to inspect details in hover.</div>", unsafe_allow_html=True)
-        else:
-            st.info("No `weather_condition` column available to show distribution.")
+    # Keep right narrow column for notes / quick stats if needed (now uses the same pie area for balance)
+    with right_narrow:
+        st.markdown("")  # keep it aligned; nothing required here
 
 with tab2:
     st.subheader("Detailed analysis")
