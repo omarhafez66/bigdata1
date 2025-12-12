@@ -505,7 +505,7 @@ with tab4:
     # Title
     st.title("Monte Carlo Simulation")
 
-    # Image (make sure the image is inside the assets folder)
+    # Image 
     st.image(
         "assets/congestion_probability_distribution_1-converted.webp",  
         use_container_width=True
@@ -513,14 +513,13 @@ with tab4:
     # Description text
     st.markdown(
         """
-        **Monte Carlo Simulation** is used to model uncertainty and randomness
-        in traffic conditions and accident prediction.
-
-        In this section, the simulation helps estimate possible future outcomes
-        based on historical traffic, weather, and road conditions.
+        this is the distribution of congestion level probability extracted 
+        from 10,000 samples under the different weather scenarios we have
         """
     )
     st.divider()
+  
+    st.title("Simulation Results")
     
 # -------------------------
 # Footer tips + accessibility
@@ -532,6 +531,7 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
+
 
 
 
