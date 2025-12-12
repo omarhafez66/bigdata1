@@ -524,6 +524,9 @@ with tab4:
 
         st.markdown("### Simulation Results (CSV)")
         st.dataframe(mc_df, use_container_width=True)
+        st.caption(
+        "Each row contains the actual probability of high congestion and accident risk calculated from the original dataset and the predicted probability extracted from the Monte Carlo simulation along with standard deviation and 95% confidence interval"
+        )
 
         # Download button
         csv_bytes = mc_df.to_csv(index=False).encode("utf-8")
@@ -536,7 +539,9 @@ with tab4:
 
     except FileNotFoundError:
         st.warning("Monte Carlo results CSV not found in the assets folder.")
-    
+    st.markdown("**Quick summary:**")
+    st.write(mc_df.describe())
+
 # -------------------------
 # Footer tips + accessibility
 # -------------------------
@@ -547,6 +552,7 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
+
 
 
 
