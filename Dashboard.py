@@ -253,12 +253,11 @@ tab1, tab2, tab3 = st.tabs(["Overview", "Detailed", "Data & Export"])
 
 with tab1:
     st.subheader("Overview — quick glance")
+    # layout: left column for main scatter + extra charts stacked; right column for weather pie etc.
+    left, right = st.columns([2, 1])
 
-    # --- TOP ROW: Scatter (left wide) + Right column (boxplot above pie) ---
-    sc_col, right_col = st.columns([2, 1])
-
-    # Scatter in left wide column
-    with sc_col:
+    # Scatter with min/max size and better legend placement
+    with left:
         st.markdown("**Temperature × Avg Speed × Vehicle Count**  \n*Bubble size represents vehicle density*")
         size_ref = max(df_f["vehicle_count"].max() if "vehicle_count" in df_f.columns else 1, 1)
         fig = px.scatter(
@@ -281,94 +280,79 @@ with tab1:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # Right column: Box Plot above Road Condition Pie
-    with right_col:
-        st.markdown("### Speed Distribution")
-        # Box Plot small (in right column) — shows congestion vs speed
+        # --- Box Plot — Avg Speed vs Congestion Level (Always On) ---
+        st.markdown("### Box Plot — Avg Speed vs Congestion Level")
         if "avg_speed_kmh" in df_f.columns and "congestion_level" in df_f.columns:
             try:
-                fig_box_small = px.box(
+                fig_box = px.box(
                     df_f,
                     x="congestion_level",
                     y="avg_speed_kmh",
                     points="outliers" if show_outliers else False,
                     category_orders={"congestion_level": ["Low", "Medium", "High"]},
+                    title="Distribution of Avg Speed by Congestion Level",
                     labels={"avg_speed_kmh": "Avg Speed (km/h)", "congestion_level": "Congestion Level"},
                 )
-                fig_box_small.update_layout(template=theme_choice, margin=dict(t=10, b=10, l=10, r=10), height=300)
-                st.plotly_chart(fig_box_small, use_container_width=True)
+                fig_box.update_layout(template=theme_choice, margin=dict(t=40, b=10, l=10, r=10))
+                st.plotly_chart(fig_box, use_container_width=True)
+                st.markdown("<div class='small-note'>Box plot helps compare speed variability across congestion levels.</div>", unsafe_allow_html=True)
             except Exception as e:
-                st.error(f"Couldn't build small box plot: {e}")
+                st.error(f"Couldn't build box plot: {e}")
         else:
-            st.info("Small box plot needs columns: `avg_speed_kmh` and `congestion_level`.")
+            st.info("Box plot needs columns: `avg_speed_kmh` and `congestion_level`.")
 
-        st.markdown("### Road Condition Distribution")
-        if "road_condition" in df_f.columns:
-            df_rc = df_f[df_f["road_condition"].isin(["Snowy", "Dry", "Wet", "Damaged"])]
-            rc = df_rc["road_condition"].value_counts().reset_index()
-            rc.columns = ["road_condition", "count"]
+        # --- Line Chart — Accident Count vs Time (Always On) ---
+        st.markdown("### Line Chart — Accident Count vs Time (by Weather Condition)")
+        freq_map = {"Daily": "D", "Weekly": "W", "Monthly": "M"}
+        freq = freq_map.get(acc_line_freq, "D")
 
-            fig_rc = px.pie(
-                rc,
-                values="count",
-                names="road_condition",
-                hole=0.5,
-                title="Road Conditions",
-                color="road_condition",
-                color_discrete_map={
-                    "Dry": "#10B981",
-                    "Wet": "#3B82F6",
-                    "Snowy": "#60A5FA",
-                    "Damaged": "#EF4444"
-                }
-            )
-            fig_rc.update_layout(template=theme_choice, margin=dict(t=10, b=10, l=10, r=10), height=300)
-            st.plotly_chart(fig_rc, use_container_width=True)
-            st.markdown("<div class='small-note'>Distribution of road surface conditions affecting traffic and safety.</div>", unsafe_allow_html=True)
+        if "accident_count" in df_f.columns and "weather_condition" in df_f.columns:
+            try:
+                acc_df = (
+                    df_f
+                    .groupby([pd.Grouper(key="date_time", freq=freq), "weather_condition"])["accident_count"]
+                    .sum()
+                    .reset_index()
+                )
+
+                # reduce clutter: keep top weather categories
+                weather_counts = df_f["weather_condition"].value_counts().index.tolist()
+                top_weather = weather_counts[:8]  # show up to 8 lines
+                acc_df = acc_df[acc_df["weather_condition"].isin(top_weather)]
+
+                fig_acc = px.line(
+                    acc_df,
+                    x="date_time",
+                    y="accident_count",
+                    color="weather_condition",
+                    title=f"{acc_line_freq} Accident Count by Weather Condition",
+                    labels={"date_time": "Date", "accident_count": "Accidents", "weather_condition": "Weather"},
+                )
+                fig_acc.update_layout(
+                    template=theme_choice,
+                    legend=dict(orientation="h", y=-0.2),
+                    margin=dict(t=40, b=20, l=10, r=10)
+                )
+                fig_acc.update_xaxes(showgrid=show_grid)
+                fig_acc.update_yaxes(showgrid=show_grid)
+                st.plotly_chart(fig_acc, use_container_width=True)
+                st.markdown("<div class='small-note'>Aggregation frequency can be changed from the sidebar. Top weather types are shown to reduce clutter.</div>", unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Couldn't build accidents line chart: {e}")
         else:
-            st.info("Column `road_condition` is missing.")
+            st.info("Accident line chart needs columns: `accident_count`, `date_time`, and `weather_condition`.")
 
-    # --- BELOW: Accident line chart (wide under scatter) ---
-    st.markdown("## Accident Trends")
-    st.markdown("### Line Chart — Accident Count vs Time (by Weather Condition)")
-    freq_map = {"Daily": "D", "Weekly": "W", "Monthly": "M"}
-    freq = freq_map.get(acc_line_freq, "D")
-
-    if "accident_count" in df_f.columns and "weather_condition" in df_f.columns:
-        try:
-            acc_df = (
-                df_f
-                .groupby([pd.Grouper(key="date_time", freq=freq), "weather_condition"])["accident_count"]
-                .sum()
-                .reset_index()
-            )
-
-            # reduce clutter: keep top weather categories
-            weather_counts = df_f["weather_condition"].value_counts().index.tolist()
-            top_weather = weather_counts[:8]  # show up to 8 lines
-            acc_df = acc_df[acc_df["weather_condition"].isin(top_weather)]
-
-            fig_acc = px.line(
-                acc_df,
-                x="date_time",
-                y="accident_count",
-                color="weather_condition",
-                title=f"{acc_line_freq} Accident Count by Weather Condition",
-                labels={"date_time": "Date", "accident_count": "Accidents", "weather_condition": "Weather"},
-            )
-            fig_acc.update_layout(
-                template=theme_choice,
-                legend=dict(orientation="h", y=-0.2),
-                margin=dict(t=40, b=20, l=10, r=10)
-            )
-            fig_acc.update_xaxes(showgrid=show_grid)
-            fig_acc.update_yaxes(showgrid=show_grid)
-            st.plotly_chart(fig_acc, use_container_width=True)
-            st.markdown("<div class='small-note'>Aggregation frequency can be changed from the sidebar. Top weather types are shown to reduce clutter.</div>", unsafe_allow_html=True)
-        except Exception as e:
-            st.error(f"Couldn't build accidents line chart: {e}")
-    else:
-        st.info("Accident line chart needs columns: `accident_count`, `date_time`, and `weather_condition`.")
+    with right:
+        st.subheader("Weather Conditions")
+        if "weather_condition" in df_f.columns:
+            cond = df_f["weather_condition"].value_counts().reset_index()
+            cond.columns = ["condition", "count"]
+            fig2 = px.pie(cond, values="count", names="condition", hole=0.55, title="Weather distribution")
+            fig2.update_layout(template=theme_choice, margin=dict(t=40, b=10, l=10, r=10))
+            st.plotly_chart(fig2, use_container_width=True)
+            st.markdown("<div class='small-note'>Click a slice to inspect details in hover.</div>", unsafe_allow_html=True)
+        else:
+            st.info("No `weather_condition` column available to show distribution.")
 
 with tab2:
     st.subheader("Detailed analysis")
