@@ -378,7 +378,7 @@ with tab1:
 
             # use a blue sequential palette for road conditions
             try:
-                color_seq = px.colors.qualitative.Pastel
+                color_seq = px.colors.qualitative.Plotly
             except Exception:
                 color_seq = None
 
@@ -508,3 +508,4 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
+
