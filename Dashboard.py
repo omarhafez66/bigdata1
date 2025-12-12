@@ -521,7 +521,8 @@ with tab4:
         based on historical traffic, weather, and road conditions.
         """
     )
-
+    st.divider()
+    
 # -------------------------
 # Footer tips + accessibility
 # -------------------------
@@ -532,6 +533,7 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
+
 
 
 
