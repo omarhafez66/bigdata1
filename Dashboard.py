@@ -514,7 +514,7 @@ with tab4:
     st.markdown(
         """
         This is the distribution of congestion level probability extracted 
-        from 10,000 samples under the different weather scenarios we have period
+        from 10,000 samples under the different weather scenarios we have.
         """
     )
     st.divider()
@@ -547,6 +547,7 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
+
 
 
 
