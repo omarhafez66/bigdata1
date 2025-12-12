@@ -354,6 +354,48 @@ with tab1:
         else:
             st.info("No `weather_condition` column available to show distribution.")
 
+        # ------------------------
+        # NEW: Road condition pie
+        # ------------------------
+        st.subheader("Road Conditions")
+        # Ensure we show the four requested categories in the specified order even if some are absent
+        desired_order = ["Snowy", "Dry", "Wet", "Damaged"]
+        if "road_condition" in df_f.columns:
+            # fill NaNs with 'Unknown' if you want them to appear, otherwise dropna()
+            road_series = df_f["road_condition"].astype(str).fillna("Unknown")
+            # build counts and ensure the desired order + include any other categories at the end
+            counts = road_series.value_counts()
+            # build dataframe that ensures the 4 categories are present (0 if missing)
+            road_df = pd.DataFrame({
+                "condition": desired_order,
+                "count": [int(counts.get(k, 0)) for k in desired_order]
+            })
+            # include other categories (if any) after the main four
+            others = [k for k in counts.index if k not in desired_order]
+            if others:
+                others_df = pd.DataFrame({"condition": others, "count": [int(counts[k]) for k in others]})
+                road_df = pd.concat([road_df, others_df], ignore_index=True)
+
+            # use a blue sequential palette for road conditions
+            try:
+                color_seq = px.colors.sequential.Blues
+            except Exception:
+                color_seq = None
+
+            fig_road = px.pie(
+                road_df,
+                values="count",
+                names="condition",
+                hole=0.55,
+                title="Road condition distribution",
+                color_discrete_sequence=color_seq
+            )
+            fig_road.update_layout(template=theme_choice, margin=dict(t=40, b=10, l=10, r=10))
+            st.plotly_chart(fig_road, use_container_width=True)
+            st.markdown("<div class='small-note'>Road condition distribution for the filtered data. Categories: Snowy, Dry, Wet, Damaged.</div>", unsafe_allow_html=True)
+        else:
+            st.info("No `road_condition` column available to show distribution. Make sure your CSV has a `road_condition` column with values like Snowy, Dry, Wet, Damaged.")
+
 with tab2:
     st.subheader("Detailed analysis")
 
@@ -466,4 +508,3 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
-
