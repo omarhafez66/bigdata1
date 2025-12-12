@@ -378,7 +378,7 @@ with tab1:
 
             # use a blue sequential palette for road conditions
             try:
-                color_seq = px.colors.sequential.Blues
+                color_seq = px.colors.qualitative.Pastel
             except Exception:
                 color_seq = None
 
