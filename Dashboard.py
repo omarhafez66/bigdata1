@@ -42,6 +42,9 @@ body { background: var(--bg); }
 .metric-value { font-size:24px; font-weight:700; color:#111827; margin:0; }
 .metric-caption { font-size:12px; color:var(--muted); margin:0; }
 
+/* small note style */
+.small-note { font-size:12px; color:var(--muted); margin-top:6px; }
+
 /* responsive tweaks */
 @media (max-width:900px){
   .header-title { font-size:26px; }
@@ -95,10 +98,10 @@ st.markdown('<div>'
             '</div>', unsafe_allow_html=True)
 
 # metrics
-avg_temp = df["temperature_c"].mean()
-avg_humidity = df["humidity"].mean()
-total_vehicles = int(df["vehicle_count"].sum())
-total_accidents = int(df["accident_count"].sum())
+avg_temp = df["temperature_c"].mean() if "temperature_c" in df.columns else 0
+avg_humidity = df["humidity"].mean() if "humidity" in df.columns else 0
+total_vehicles = int(df["vehicle_count"].sum()) if "vehicle_count" in df.columns else 0
+total_accidents = int(df["accident_count"].sum()) if "accident_count" in df.columns else 0
 
 # -------
 # KPI Row
@@ -149,7 +152,7 @@ st.write("\n")
 st.sidebar.title("Filters")
 
 # --- Seasons as individual checkboxes (easier to use) ---
-seasons_list = sorted(df["season"].dropna().unique())
+seasons_list = sorted(df["season"].dropna().unique()) if "season" in df.columns else []
 st.sidebar.markdown("### Seasons")
 season_checks = {}
 for s in seasons_list:
@@ -171,13 +174,23 @@ min_dt, max_dt = df["date_time"].min(), df["date_time"].max()
 dt_range = st.sidebar.date_input("Date range", value=[min_dt.date(), max_dt.date()])
 agg = st.sidebar.selectbox("Aggregation (for trends)", ["Daily", "Weekly", "Monthly"])
 
+# Overview extras toggles
+st.sidebar.markdown("---")
+st.sidebar.markdown("### Overview extra charts")
+show_boxplot = st.sidebar.checkbox("Show Box Plot — Avg Speed vs Congestion", value=True)
+show_acc_line = st.sidebar.checkbox("Show Line Chart — Accidents vs Time", value=True)
+# aggregation toggle specifically for accident line chart
+acc_line_freq = st.sidebar.selectbox("Accident chart frequency", ["Daily", "Weekly", "Monthly"])
+
 # Advanced
 with st.sidebar.expander("Advanced"):
-    min_acc, max_acc = int(df["accident_count"].min()), int(df["accident_count"].max())
+    min_acc, max_acc = int(df["accident_count"].min()), int(df["accident_count"].max()) if "accident_count" in df.columns else (0,1)
     acc_threshold = st.slider("Min accidents per record", min_acc, max_acc, min_acc)
     show_grid = st.checkbox("Show grid lines on trends", value=False)
     theme_choice = st.selectbox("Chart Theme", ["plotly_white", "plotly_dark"])
     compact_mode = st.checkbox("Compact mode (less spacing)", value=False)
+    # boxplot options
+    show_outliers = st.checkbox("Box plot show outliers", value=True)
 
 # -------------------------
 # Apply filters
@@ -186,14 +199,17 @@ df_f = df.copy()
 
 # seasons filter (from checkboxes)
 if season:
-    df_f = df_f[df_f["season"].isin(season)]
+    if "season" in df_f.columns:
+        df_f = df_f[df_f["season"].isin(season)]
 
 # area dropdown filter
 if area and area != "All":
-    df_f = df_f[df_f["area"] == area]
+    if "area" in df_f.columns:
+        df_f = df_f[df_f["area"] == area]
 
 # advanced filters
-df_f = df_f[df_f["accident_count"] >= acc_threshold]
+if "accident_count" in df_f.columns:
+    df_f = df_f[df_f["accident_count"] >= acc_threshold]
 
 # date range
 start = pd.to_datetime(dt_range[0])
@@ -237,87 +253,176 @@ tab1, tab2, tab3 = st.tabs(["Overview", "Detailed", "Data & Export"])
 
 with tab1:
     st.subheader("Overview — quick glance")
-    c1, c2 = st.columns([2,1])
+    # layout: left column for main scatter + extra charts stacked; right column for weather pie etc.
+    left, right = st.columns([2,1])
 
     # Scatter with min/max size and better legend placement
-    with c1:
+    with left:
         st.markdown("**Temperature × Avg Speed × Vehicle Count**  \n*Bubble size represents vehicle density*")
-        size_ref = max(df_f["vehicle_count"].max(), 1)
-        fig = px.scatter(df_f, x="temperature_c", y="avg_speed_kmh",
-                         size="vehicle_count", size_max=50,
-                         color="congestion_level" if "congestion_level" in df_f.columns else None,
-                         color_discrete_map=PALETTE,
-                         hover_name="area",
-                         hover_data={"vehicle_count":True, "date_time":True},
-                         labels={"temperature_c":"Temp (°C)", "avg_speed_kmh":"Avg Speed (km/h)"},
-                         title="Temperature vs Speed (bubble = vehicles)")
-        fig.update_layout(legend=dict(title="Congestion", orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                          template=theme_choice)
+        size_ref = max(df_f["vehicle_count"].max() if "vehicle_count" in df_f.columns else 1, 1)
+        fig = px.scatter(
+            df_f,
+            x="temperature_c" if "temperature_c" in df_f.columns else None,
+            y="avg_speed_kmh" if "avg_speed_kmh" in df_f.columns else None,
+            size="vehicle_count" if "vehicle_count" in df_f.columns else None,
+            size_max=50,
+            color="congestion_level" if "congestion_level" in df_f.columns else None,
+            color_discrete_map=PALETTE,
+            hover_name="area" if "area" in df_f.columns else None,
+            hover_data={"vehicle_count":True, "date_time":True} if "vehicle_count" in df_f.columns else {"date_time":True},
+            labels={"temperature_c":"Temp (°C)", "avg_speed_kmh":"Avg Speed (km/h)"},
+            title="Temperature vs Speed (bubble = vehicles)"
+        )
+        fig.update_layout(
+            legend=dict(title="Congestion", orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            template=theme_choice,
+            margin=dict(t=50, b=20, l=20, r=20)
+        )
         st.plotly_chart(fig, use_container_width=True)
 
-    with c2:
+        # --- NEW: Box Plot — Avg Speed vs Congestion Level ---
+        if show_boxplot:
+            st.markdown("### Box Plot — Avg Speed vs Congestion Level")
+            if "avg_speed_kmh" in df_f.columns and "congestion_level" in df_f.columns:
+                try:
+                    fig_box = px.box(
+                        df_f,
+                        x="congestion_level",
+                        y="avg_speed_kmh",
+                        points="outliers" if show_outliers else False,
+                        category_orders={"congestion_level": ["Low", "Medium", "High"]},
+                        title="Distribution of Avg Speed by Congestion Level",
+                        labels={"avg_speed_kmh": "Avg Speed (km/h)", "congestion_level": "Congestion Level"},
+                    )
+                    fig_box.update_layout(template=theme_choice, margin=dict(t=40, b=10, l=10, r=10))
+                    st.plotly_chart(fig_box, use_container_width=True)
+                    st.markdown("<div class='small-note'>Box plot helps compare speed variability across congestion levels.</div>", unsafe_allow_html=True)
+                except Exception as e:
+                    st.error(f"Couldn't build box plot: {e}")
+            else:
+                st.info("Box plot needs columns: `avg_speed_kmh` and `congestion_level`.")
+
+        # --- NEW: Line Chart — Accident Count vs Time (with Weather Condition) ---
+        if show_acc_line:
+            st.markdown("### Line Chart — Accident Count vs Time (by Weather Condition)")
+            # group frequency
+            freq_map = {"Daily":"D", "Weekly":"W", "Monthly":"M"}
+            freq = freq_map.get(acc_line_freq, "D")
+            if "accident_count" in df_f.columns and "weather_condition" in df_f.columns:
+                try:
+                    acc_df = (
+                        df_f
+                        .groupby([pd.Grouper(key="date_time", freq=freq), "weather_condition"])["accident_count"]
+                        .sum()
+                        .reset_index()
+                    )
+                    # if too many categories, keep top N weather types to avoid clutter
+                    weather_counts = df_f["weather_condition"].value_counts().index.tolist()
+                    top_weather = weather_counts[:8]  # keep up to 8 lines
+                    acc_df = acc_df[acc_df["weather_condition"].isin(top_weather)]
+
+                    fig_acc = px.line(
+                        acc_df,
+                        x="date_time",
+                        y="accident_count",
+                        color="weather_condition",
+                        title=f"{acc_line_freq} Accident Count by Weather Condition",
+                        labels={"date_time": "Date", "accident_count": "Accidents", "weather_condition":"Weather"},
+                    )
+                    fig_acc.update_layout(template=theme_choice, legend=dict(orientation="h", y=-0.2), margin=dict(t=40, b=20, l=10, r=10))
+                    # grid toggles
+                    fig_acc.update_xaxes(showgrid=show_grid)
+                    fig_acc.update_yaxes(showgrid=show_grid)
+                    st.plotly_chart(fig_acc, use_container_width=True)
+                    st.markdown("<div class='small-note'>Use aggregation to switch frequency. Top weather types shown to reduce clutter.</div>", unsafe_allow_html=True)
+                except Exception as e:
+                    st.error(f"Couldn't build accidents line chart: {e}")
+            else:
+                st.info("Accident line chart needs columns: `accident_count`, `date_time`, and `weather_condition`.")
+
+    with right:
         st.subheader("Weather Conditions")
-        cond = df_f["weather_condition"].value_counts().reset_index()
-        cond.columns = ["condition","count"]
-        fig2 = px.pie(cond, values="count", names="condition", hole=0.55, title="Weather distribution")
-        st.plotly_chart(fig2, use_container_width=True)
-        st.markdown("<div class='small-note'>Click a slice to filter records for that condition in hover details.</div>", unsafe_allow_html=True)
+        if "weather_condition" in df_f.columns:
+            cond = df_f["weather_condition"].value_counts().reset_index()
+            cond.columns = ["condition","count"]
+            fig2 = px.pie(cond, values="count", names="condition", hole=0.55, title="Weather distribution")
+            fig2.update_layout(template=theme_choice, margin=dict(t=40, b=10, l=10, r=10))
+            st.plotly_chart(fig2, use_container_width=True)
+            st.markdown("<div class='small-note'>Click a slice to inspect details in hover.</div>", unsafe_allow_html=True)
+        else:
+            st.info("No `weather_condition` column available to show distribution.")
 
 with tab2:
     st.subheader("Detailed analysis")
 
     # Heatmap accidents
     df_f = df_f.copy()
-    df_f["hour"] = df_f["date_time"].dt.hour
-    df_f["weekday"] = df_f["date_time"].dt.day_name()
-    heat = df_f.groupby(["weekday","hour"])["accident_count"].sum().reset_index()
-    weekdays = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
-    heat["weekday"] = pd.Categorical(heat["weekday"], categories=weekdays, ordered=True)
-    heat = heat.sort_values(["weekday","hour"])
-    fig3 = px.density_heatmap(heat, x="hour", y="weekday", z="accident_count",
-                              category_orders={"weekday":weekdays}, title="Accidents heatmap (hour vs day)")
-    st.plotly_chart(fig3, use_container_width=True)
+    if "date_time" in df_f.columns:
+        df_f["hour"] = df_f["date_time"].dt.hour
+        df_f["weekday"] = df_f["date_time"].dt.day_name()
+    else:
+        df_f["hour"] = 0
+        df_f["weekday"] = "Monday"
+
+    if "accident_count" in df_f.columns:
+        heat = df_f.groupby(["weekday","hour"])["accident_count"].sum().reset_index()
+        weekdays = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
+        heat["weekday"] = pd.Categorical(heat["weekday"], categories=weekdays, ordered=True)
+        heat = heat.sort_values(["weekday","hour"])
+        fig3 = px.density_heatmap(heat, x="hour", y="weekday", z="accident_count",
+                                  category_orders={"weekday":weekdays}, title="Accidents heatmap (hour vs day)")
+        fig3.update_layout(template=theme_choice)
+        st.plotly_chart(fig3, use_container_width=True)
+    else:
+        st.info("Heatmap requires `accident_count` column.")
 
     st.markdown("---")
 
     # Trend
     st.subheader("Vehicle trend")
-    if agg == "Daily":
-        plot_series = df_time_all["vehicle_count"].resample("D").sum().fillna(0)
-        roll = 7
-    elif agg == "Weekly":
-        plot_series = df_time_all["vehicle_count"].resample("W").sum().fillna(0)
-        roll = 4
-    else:
-        plot_series = df_time_all["vehicle_count"].resample("M").sum().fillna(0)
-        roll = 3
-    rolling = plot_series.rolling(roll).mean()
-    fig4 = go.Figure()
-    fig4.add_trace(go.Scatter(x=plot_series.index, y=plot_series.values, mode="lines", name="Total"))
-    fig4.add_trace(go.Scatter(x=rolling.index, y=rolling.values, mode="lines", name=f"{roll}-period rolling mean"))
-    fig4.update_layout(title="Vehicle counts over time", xaxis_title="Date", yaxis_title="Vehicles", template=theme_choice,
-                       xaxis=dict(showgrid=show_grid), yaxis=dict(showgrid=show_grid))
-    st.plotly_chart(fig4, use_container_width=True)
+    if "vehicle_count" in df_time_all.columns:
+        if agg == "Daily":
+            plot_series = df_time_all["vehicle_count"].resample("D").sum().fillna(0)
+            roll = 7
+        elif agg == "Weekly":
+            plot_series = df_time_all["vehicle_count"].resample("W").sum().fillna(0)
+            roll = 4
+        else:
+            plot_series = df_time_all["vehicle_count"].resample("M").sum().fillna(0)
+            roll = 3
+        rolling = plot_series.rolling(roll).mean()
+        fig4 = go.Figure()
+        fig4.add_trace(go.Scatter(x=plot_series.index, y=plot_series.values, mode="lines", name="Total"))
+        fig4.add_trace(go.Scatter(x=rolling.index, y=rolling.values, mode="lines", name=f"{roll}-period rolling mean"))
+        fig4.update_layout(title="Vehicle counts over time", xaxis_title="Date", yaxis_title="Vehicles", template=theme_choice,
+                           xaxis=dict(showgrid=show_grid), yaxis=dict(showgrid=show_grid), margin=dict(t=40, b=20, l=10, r=10))
+        st.plotly_chart(fig4, use_container_width=True)
 
-    # download PNG
-    try:
-        img = fig4.to_image(format="png", scale=2)
-        st.download_button("Download trend image (PNG)", data=img, file_name="vehicle_trend.png", mime="image/png")
-    except Exception:
-        st.info("To download PNG: install `kaleido` (pip install kaleido).")
+        # download PNG
+        try:
+            img = fig4.to_image(format="png", scale=2)
+            st.download_button("Download trend image (PNG)", data=img, file_name="vehicle_trend.png", mime="image/png")
+        except Exception:
+            st.info("To download PNG: install `kaleido` (pip install kaleido).")
+    else:
+        st.info("Vehicle trend chart requires `vehicle_count` column.")
 
     st.markdown("---")
 
     # Congestion by area stacked
     st.subheader("Congestion by area")
-    if "congestion_level" in df_f.columns:
-        cong = df_f.groupby(["area","congestion_level"])["vehicle_count"].sum().reset_index()
-        fig5 = px.bar(cong, x="area", y="vehicle_count", color="congestion_level", color_discrete_map=PALETTE,
-                      title="Vehicles by congestion level per area")
+    if "area" in df_f.columns and "vehicle_count" in df_f.columns:
+        if "congestion_level" in df_f.columns:
+            cong = df_f.groupby(["area","congestion_level"])["vehicle_count"].sum().reset_index()
+            fig5 = px.bar(cong, x="area", y="vehicle_count", color="congestion_level", color_discrete_map=PALETTE,
+                          title="Vehicles by congestion level per area")
+        else:
+            cong = df_f.groupby("area")["vehicle_count"].sum().reset_index().sort_values("vehicle_count", ascending=False)
+            fig5 = px.bar(cong, x="area", y="vehicle_count", title="Vehicles per area")
+        fig5.update_layout(template=theme_choice, margin=dict(t=40, b=20, l=10, r=10))
+        st.plotly_chart(fig5, use_container_width=True)
     else:
-        cong = df_f.groupby("area")["vehicle_count"].sum().reset_index().sort_values("vehicle_count", ascending=False)
-        fig5 = px.bar(cong, x="area", y="vehicle_count", title="Vehicles per area")
-    st.plotly_chart(fig5, use_container_width=True)
+        st.info("Congestion chart requires `area` and `vehicle_count` columns.")
 
 with tab3:
     st.subheader("Data & Export")
@@ -345,7 +450,7 @@ with tab3:
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Tips & Accessibility**")
 st.sidebar.markdown("- Use the area dropdown to focus on a specific neighborhood quickly.")
-st.sidebar.markdown("- Ensure colors are visible in dark mode if your users switch themes.")
+st.sidebar.markdown("- Toggle the overview charts to reduce clutter or focus your analysis.")
 # removed Top-N tip as requested
 
 # End of dashboard
