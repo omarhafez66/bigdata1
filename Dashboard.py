@@ -252,7 +252,7 @@ def pct_change(s, shift):
 tab1, tab2, tab3 = st.tabs(["Overview", "Detailed", "Data & Export"])
 
 with tab1:
-    st.subheader("Overview — quick glance")
+    st.subheader("Overview")
     # layout: left column for main scatter + extra charts stacked; right column for weather pie etc.
     left, right = st.columns([2, 1])
 
@@ -280,8 +280,8 @@ with tab1:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- Box Plot — Avg Speed vs Congestion Level (Always On) ---
-        st.markdown("### Box Plot — Avg Speed vs Congestion Level")
+        # Box Plot  Avg Speed vs Congestion Level 
+        st.markdown("### Box Plot Avg Speed vs Congestion Level")
         if "avg_speed_kmh" in df_f.columns and "congestion_level" in df_f.columns:
             try:
                 fig_box = px.box(
@@ -302,7 +302,7 @@ with tab1:
             st.info("Box plot needs columns: `avg_speed_kmh` and `congestion_level`.")
 
         # --- Line Chart — Accident Count vs Time (Always On) ---
-        st.markdown("### Line Chart — Accident Count vs Time (by Weather Condition)")
+        st.markdown("### Line Chart Accident Count vs Time (by Weather Condition)")
         freq_map = {"Daily": "D", "Weekly": "W", "Monthly": "M"}
         freq = freq_map.get(acc_line_freq, "D")
 
@@ -508,4 +508,5 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
+
 
