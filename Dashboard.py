@@ -249,7 +249,10 @@ def pct_change(s, shift):
 # -------------------------
 # Tabs with improved charts
 # -------------------------
-tab1, tab2, tab3 = st.tabs(["Overview", "Detailed", "Data & Export"])
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["Overview", "Detailed", "Data & Export", "Monte Carlo"]
+)
+
 
 with tab1:
     st.subheader("Overview")
@@ -498,6 +501,27 @@ with tab3:
     st.markdown(f"- Area with highest vehicles: **{top_area}**")
     st.markdown(f"- Weather with most accidents: **{worst_cond}**")
 
+with tab4:
+    # Title
+    st.title("Monte Carlo Simulation")
+
+    # Image (make sure the image is inside the assets folder)
+    st.image(
+        "assets/congestion_probability_distribution_1-converted.webp",  
+        use_container_width=True
+    )
+
+    # Description text
+    st.markdown(
+        """
+        **Monte Carlo Simulation** is used to model uncertainty and randomness
+        in traffic conditions and accident prediction.
+
+        In this section, the simulation helps estimate possible future outcomes
+        based on historical traffic, weather, and road conditions.
+        """
+    )
+
 # -------------------------
 # Footer tips + accessibility
 # -------------------------
@@ -508,5 +532,6 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
+
 
 
