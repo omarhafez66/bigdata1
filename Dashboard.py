@@ -553,7 +553,7 @@ with tab5:
 
     st.image(
             "assets/correlation_matrix.webp",  
-            use_container_width=True
+            , width=900
         )
     st.caption(
             "Loading table for factors to interpret them"
@@ -569,6 +569,7 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
+
 
 
 
