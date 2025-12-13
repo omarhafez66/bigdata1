@@ -552,7 +552,7 @@ with tab5:
         )
 
     st.image(
-            "assets/correlation_matrix.webp",  
+            "assets/correlation_matrix.webp" 
             , width=900
         )
     st.caption(
@@ -569,6 +569,7 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
+
 
 
 
