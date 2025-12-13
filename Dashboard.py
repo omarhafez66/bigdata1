@@ -249,8 +249,8 @@ def pct_change(s, shift):
 # -------------------------
 # Tabs with improved charts
 # -------------------------
-tab1, tab2, tab3, tab4 = st.tabs(
-    ["Overview", "Detailed", "Data & Export", "Monte Carlo"]
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    ["Overview", "Detailed", "Data & Export", "Monte Carlo", "Factor Analysis"]
 )
 
 
@@ -540,6 +540,30 @@ with tab4:
     except FileNotFoundError:
         st.warning("Monte Carlo results CSV not found in the assets folder.")
 
+with tab5:
+    # Title
+    st.title("Factor Analysis")
+
+    # Two-column layout for images
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.image(
+            "assets/scree_plot.png",  
+            use_container_width=True
+        )
+        st.caption(
+            "Pick best factors based on eginvalues"
+        )
+
+    with col2:
+        st.image(
+            "assets/correlation_matrix.png",  
+            use_container_width=True
+        )
+        st.caption(
+            "Loading table for factors to interpret  them"
+        )
 
 # -------------------------
 # Footer tips + accessibility
@@ -551,6 +575,7 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
+
 
 
 
