@@ -545,7 +545,7 @@ with tab5:
     st.title("Factor Analysis")
 
     st.image(
-            "assets/scree_plot.webp", width=900
+            "assets/scree_plot.webp", use_container_width=True
         )
     st.caption(
             "Pick best factors based on eginvalues"
@@ -569,6 +569,7 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
+
 
 
 
