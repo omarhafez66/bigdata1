@@ -455,14 +455,14 @@ with tab2:
         )
         st.plotly_chart(fig4, use_container_width=True)
 
-        # download PNG
-        try:
-            img = fig4.to_image(format="png", scale=2)
-            st.download_button("Download trend image (PNG)", data=img, file_name="vehicle_trend.png", mime="image/png")
-        except Exception:
-            st.info("To download PNG: install `kaleido` (pip install kaleido).")
-    else:
-        st.info("Vehicle trend chart requires `vehicle_count` column.")
+    #     # download PNG
+    #     try:
+    #         img = fig4.to_image(format="png", scale=2)
+    #         st.download_button("Download trend image (PNG)", data=img, file_name="vehicle_trend.png", mime="image/png")
+    #     except Exception:
+    #         st.info("To download PNG: install `kaleido` (pip install kaleido).")
+    # else:
+    #     st.info("Vehicle trend chart requires `vehicle_count` column.")
 
     st.markdown("---")
 
@@ -569,6 +569,7 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
+
 
 
 
