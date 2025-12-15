@@ -154,7 +154,7 @@ st.write("\n")
 # ----------------------------
 st.sidebar.title("Filters")
 
-# --- Seasons as individual checkboxes (easier to use) ---
+# Seasons as individual checkboxes 
 seasons_list = sorted(df["season"].dropna().unique()) if "season" in df.columns else []
 st.sidebar.markdown("### Seasons")
 season_checks = {}
@@ -304,7 +304,7 @@ with tab1:
         else:
             st.info("Box plot needs columns: `avg_speed_kmh` and `congestion_level`.")
 
-        # --- Line Chart — Accident Count vs Time (Always On) ---
+        # Line Chart  Accident Count vs Time 
         st.markdown("### Line Chart Accident Count vs Time (by Weather Condition)")
         freq_map = {"Daily": "D", "Weekly": "W", "Monthly": "M"}
         freq = freq_map.get(acc_line_freq, "D")
@@ -357,29 +357,28 @@ with tab1:
         else:
             st.info("No `weather_condition` column available to show distribution.")
 
-        # ------------------------
-        # NEW: Road condition pie
-        # ------------------------
+
+         # Road condition pie
+
         st.subheader("Road Conditions")
-        # Ensure we show the four requested categories in the specified order even if some are absent
         desired_order = ["Snowy", "Dry", "Wet", "Damaged"]
         if "road_condition" in df_f.columns:
-            # fill NaNs with 'Unknown' if you want them to appear, otherwise dropna()
+          
             road_series = df_f["road_condition"].astype(str).fillna("Unknown")
-            # build counts and ensure the desired order + include any other categories at the end
+            
             counts = road_series.value_counts()
-            # build dataframe that ensures the 4 categories are present (0 if missing)
+            
             road_df = pd.DataFrame({
                 "condition": desired_order,
                 "count": [int(counts.get(k, 0)) for k in desired_order]
             })
-            # include other categories (if any) after the main four
+            
             others = [k for k in counts.index if k not in desired_order]
             if others:
                 others_df = pd.DataFrame({"condition": others, "count": [int(counts[k]) for k in others]})
                 road_df = pd.concat([road_df, others_df], ignore_index=True)
 
-            # use a blue sequential palette for road conditions
+            
             try:
                 color_seq = px.colors.qualitative.Plotly
             except Exception:
@@ -569,6 +568,7 @@ st.sidebar.markdown("- Toggle aggregation frequency to change accident chart gra
 
 
 # End of dashboard
+
 
 
 
